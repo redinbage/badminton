@@ -68,11 +68,6 @@ console.log(`Dates: ${targetDates.join(", ")}`);
 console.log(`Available slots: ${payload.availableSlotCount}`);
 
 for (const day of availability) {
-  if (!day.available) {
-    console.log(`${day.date}: no evening availability`);
-    continue;
-  }
-
   for (const slot of day.slots) {
     console.log(`${day.date}: ${slot.start}-${slot.end} on ${slot.stationName}`);
   }
@@ -149,31 +144,23 @@ function clipSlotToWindow(station, date, slot, eveningStart, eveningEnd) {
 
 function toMarkdown(payload) {
   const lines = [
-    "# Fame Sport Club Badminton Availability",
+    "# Available Badminton Courts",
     "",
-    `Club: ${payload.club.name}`,
-    `Address: ${payload.club.address || "n/a"}`,
-    `Contact: ${payload.club.contactNumber || "n/a"}`,
-    `Website: ${payload.club.website || "n/a"}`,
-    `Checked at: ${payload.checkedAt}`,
-    `Time zone: ${payload.timeZone}`,
-    `Availability window: ${payload.eveningStart}-${payload.eveningEnd}`,
-    `Available slots: ${payload.availableSlotCount}`,
+    `${payload.club.name}, ${payload.club.address || "Krakow"}`,
+    `Window: ${payload.eveningStart}-${payload.eveningEnd}`,
     ""
   ];
 
   for (const day of payload.availability) {
-    lines.push(`## ${day.date}`);
-    lines.push("");
-
     if (!day.available) {
-      lines.push("No evening availability found.");
-      lines.push("");
       continue;
     }
 
+    lines.push(`## ${day.date}`);
+    lines.push("");
+
     for (const slot of day.slots) {
-      lines.push(`- ${slot.start}-${slot.end}: ${slot.stationName}`);
+      lines.push(`- ${slot.stationName}: ${slot.start}-${slot.end}`);
     }
 
     lines.push("");
