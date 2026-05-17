@@ -8,8 +8,9 @@ const API_BASE_URL = "https://api.tenis4u.pl";
 const CLUB_ID = Number(process.env.CLUB_ID || 104);
 const CLUB_NAME = process.env.CLUB_NAME || "Fame Sport Club";
 const SPORT_TYPE = (process.env.SPORT_TYPE || "badminton").toLowerCase();
-const DAYS_AHEAD = clamp(Number(process.env.DAYS_AHEAD || 3), 1, 14);
+const DAYS_AHEAD = clamp(Number(process.env.DAYS_AHEAD || 7), 1, 14);
 const EVENING_START = process.env.EVENING_START || "18:00";
+const EVENING_END = process.env.EVENING_END || "22:00";
 const TIME_ZONE = process.env.TIME_ZONE || "Europe/Warsaw";
 const OUTPUT_DIR = process.env.OUTPUT_DIR || "output";
 
@@ -29,7 +30,7 @@ const availability = targetDates.map((date) => {
     }
 
     return day.free_hours
-      .map((slot) => clipSlotToEvening(station, date, slot, EVENING_START))
+      .map((slot) => clipSlotToWindow(station, date, slot, EVENING_START, EVENING_END))
       .filter(Boolean);
   });
 
@@ -52,6 +53,7 @@ const payload = {
   timeZone: TIME_ZONE,
   checkedAt: checkedAt.toISOString(),
   eveningStart: EVENING_START,
+  eveningEnd: EVENING_END,
   datesChecked: targetDates,
   availableSlotCount: availability.reduce((total, day) => total + day.slots.length, 0),
   availability
@@ -61,7 +63,7 @@ await mkdir(OUTPUT_DIR, { recursive: true });
 await writeFile(`${OUTPUT_DIR}/fame-badminton-availability.json`, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 await writeFile(`${OUTPUT_DIR}/fame-badminton-availability.md`, toMarkdown(payload), "utf8");
 
-console.log(`Checked ${payload.club.name} ${SPORT_TYPE} availability after ${EVENING_START}.`);
+console.log(`Checked ${payload.club.name} ${SPORT_TYPE} availability from ${EVENING_START} to ${EVENING_END}.`);
 console.log(`Dates: ${targetDates.join(", ")}`);
 console.log(`Available slots: ${payload.availableSlotCount}`);
 
@@ -121,13 +123,15 @@ function shouldFallbackToCurl(error) {
   return code === "UNABLE_TO_GET_ISSUER_CERT_LOCALLY" || code === "SELF_SIGNED_CERT_IN_CHAIN";
 }
 
-function clipSlotToEvening(station, date, slot, eveningStart) {
+function clipSlotToWindow(station, date, slot, eveningStart, eveningEnd) {
   const slotStart = timeToMinutes(slot.begin_time);
   const slotEnd = timeToMinutes(slot.end_time);
   const eveningStartMinutes = timeToMinutes(eveningStart);
+  const eveningEndMinutes = timeToMinutes(eveningEnd);
   const clippedStart = Math.max(slotStart, eveningStartMinutes);
+  const clippedEnd = Math.min(slotEnd, eveningEndMinutes);
 
-  if (slotEnd <= eveningStartMinutes || clippedStart >= slotEnd) {
+  if (slotEnd <= eveningStartMinutes || slotStart >= eveningEndMinutes || clippedStart >= clippedEnd) {
     return null;
   }
 
@@ -137,7 +141,7 @@ function clipSlotToEvening(station, date, slot, eveningStart) {
     stationType: station.type,
     date,
     start: minutesToTime(clippedStart),
-    end: minutesToTime(slotEnd),
+    end: minutesToTime(clippedEnd),
     originalStart: slot.begin_time.slice(0, 5),
     originalEnd: slot.end_time.slice(0, 5)
   };
@@ -153,7 +157,7 @@ function toMarkdown(payload) {
     `Website: ${payload.club.website || "n/a"}`,
     `Checked at: ${payload.checkedAt}`,
     `Time zone: ${payload.timeZone}`,
-    `Evening starts: ${payload.eveningStart}`,
+    `Availability window: ${payload.eveningStart}-${payload.eveningEnd}`,
     `Available slots: ${payload.availableSlotCount}`,
     ""
   ];

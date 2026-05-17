@@ -31,7 +31,7 @@ def main():
     body = SUMMARY_PATH.read_text(encoding="utf-8")
     subject = (
         f"Fame badminton availability: "
-        f"{payload['availableSlotCount']} slots after {payload['eveningStart']}"
+        f"{payload['availableSlotCount']} slots {payload['eveningStart']}-{payload['eveningEnd']}"
     )
 
     message = EmailMessage()
