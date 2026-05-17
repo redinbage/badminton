@@ -1,36 +1,49 @@
-# This is a basic workflow to help you get started with Actions
+name: Badminton Court Search
 
-name: CI
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
+  schedule:
+    - cron: "0 * * * *"
   workflow_dispatch:
+    inputs:
+      days_ahead:
+        description: "Number of local days to check"
+        required: false
+        default: "3"
+      evening_start:
+        description: "Earliest start time to report"
+        required: false
+        default: "18:00"
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+  search:
     runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check Fame badminton availability
+        env:
+          DAYS_AHEAD: ${{ github.event.inputs.days_ahead || '3' }}
+          EVENING_START: ${{ github.event.inputs.evening_start || '18:00' }}
+          TIME_ZONE: Europe/Warsaw
+          OUTPUT_DIR: output
+        run: npm run search:courts
+
+      - name: Upload availability results
+        uses: actions/upload-artifact@v4
+        with:
+          name: fame-badminton-availability
+          path: output/
+          if-no-files-found: error

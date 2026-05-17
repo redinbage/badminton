@@ -1,0 +1,12 @@
+{
+  "name": "badminton-court-search",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "GitHub Action automation for finding badminton court search results.",
+  "scripts": {
+    "search:courts": "node src/search-badminton-courts.js"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
