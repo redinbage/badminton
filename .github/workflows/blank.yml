@@ -3,8 +3,10 @@ name: Badminton Court Search
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - ".github/state/**"
   schedule:
-    - cron: "0 * * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch:
     inputs:
       days_ahead:
@@ -23,6 +25,8 @@ on:
 jobs:
   search:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Check out repository
@@ -51,9 +55,18 @@ jobs:
         run: |
           count=$(node -e "const data=require('./output/fame-badminton-availability.json'); console.log(data.availableSlotCount)")
           echo "available_slot_count=$count" >> "$GITHUB_OUTPUT"
+          current_hash=$(sha256sum output/fame-badminton-availability.md | cut -d ' ' -f 1)
+          previous_hash=$(cat .github/state/last-email-hash.txt 2>/dev/null || true)
+          echo "current_hash=$current_hash" >> "$GITHUB_OUTPUT"
+          echo "previous_hash=$previous_hash" >> "$GITHUB_OUTPUT"
+          if [ "$count" != "0" ] && [ "$current_hash" != "$previous_hash" ]; then
+            echo "should_email=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_email=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Email availability results
-        if: ${{ steps.availability.outputs.available_slot_count != '0' }}
+        if: ${{ steps.availability.outputs.should_email == 'true' }}
         env:
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
@@ -61,8 +74,20 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
           EMAIL_TO: redinbage@gmail.com
+          EMAIL_CC: deenapereira@gmail.com
           OUTPUT_DIR: output
         run: python3 scripts/send-email.py
+
+      - name: Remember emailed results
+        if: ${{ steps.availability.outputs.should_email == 'true' }}
+        run: |
+          mkdir -p .github/state
+          echo "${{ steps.availability.outputs.current_hash }}" > .github/state/last-email-hash.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/state/last-email-hash.txt
+          git commit -m "Update last emailed availability hash"
+          git push
 
       - name: Upload availability results
         uses: actions/upload-artifact@v4

@@ -37,6 +37,8 @@ def main():
     message = EmailMessage()
     message["From"] = os.environ["EMAIL_FROM"]
     message["To"] = os.environ["EMAIL_TO"]
+    if os.environ.get("EMAIL_CC"):
+        message["Cc"] = os.environ["EMAIL_CC"]
     message["Subject"] = subject
     message.set_content(body)
 
