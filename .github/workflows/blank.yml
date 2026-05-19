@@ -12,7 +12,7 @@ on:
       days_ahead:
         description: "Number of local days to check"
         required: false
-        default: "7"
+        default: "14"
       evening_start:
         description: "Earliest start time to report"
         required: false
@@ -43,7 +43,7 @@ jobs:
 
       - name: Check Fame badminton availability
         env:
-          DAYS_AHEAD: ${{ github.event.inputs.days_ahead || '7' }}
+          DAYS_AHEAD: ${{ github.event.inputs.days_ahead || '14' }}
           EVENING_START: ${{ github.event.inputs.evening_start || '18:00' }}
           EVENING_END: ${{ github.event.inputs.evening_end || '22:00' }}
           TIME_ZONE: Europe/Warsaw
