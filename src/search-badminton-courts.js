@@ -8,9 +8,10 @@ const API_BASE_URL = "https://api.tenis4u.pl";
 const CLUB_ID = Number(process.env.CLUB_ID || 104);
 const CLUB_NAME = process.env.CLUB_NAME || "Fame Sport Club";
 const SPORT_TYPE = (process.env.SPORT_TYPE || "badminton").toLowerCase();
-const DAYS_AHEAD = clamp(Number(process.env.DAYS_AHEAD || 7), 1, 14);
+const DAYS_AHEAD = clamp(Number(process.env.DAYS_AHEAD || 14), 1, 14);
 const EVENING_START = process.env.EVENING_START || "18:00";
 const EVENING_END = process.env.EVENING_END || "22:00";
+const MIN_SLOT_MINUTES = clamp(Number(process.env.MIN_SLOT_MINUTES || 60), 1, 24 * 60);
 const TIME_ZONE = process.env.TIME_ZONE || "Europe/Warsaw";
 const OUTPUT_DIR = process.env.OUTPUT_DIR || "output";
 
@@ -31,7 +32,7 @@ const availability = targetDates.map((date) => {
 
     return day.free_hours
       .map((slot) => clipSlotToWindow(station, date, slot, EVENING_START, EVENING_END))
-      .filter(Boolean);
+      .filter((slot) => slot && slot.durationMinutes >= MIN_SLOT_MINUTES);
   });
 
   return {
@@ -54,6 +55,7 @@ const payload = {
   checkedAt: checkedAt.toISOString(),
   eveningStart: EVENING_START,
   eveningEnd: EVENING_END,
+  minimumSlotMinutes: MIN_SLOT_MINUTES,
   datesChecked: targetDates,
   availableSlotCount: availability.reduce((total, day) => total + day.slots.length, 0),
   availability
@@ -64,6 +66,7 @@ await writeFile(`${OUTPUT_DIR}/fame-badminton-availability.json`, `${JSON.string
 await writeFile(`${OUTPUT_DIR}/fame-badminton-availability.md`, toMarkdown(payload), "utf8");
 
 console.log(`Checked ${payload.club.name} ${SPORT_TYPE} availability from ${EVENING_START} to ${EVENING_END}.`);
+console.log(`Minimum slot duration: ${MIN_SLOT_MINUTES} minutes`);
 console.log(`Dates: ${targetDates.join(", ")}`);
 console.log(`Available slots: ${payload.availableSlotCount}`);
 
@@ -137,6 +140,7 @@ function clipSlotToWindow(station, date, slot, eveningStart, eveningEnd) {
     date,
     start: minutesToTime(clippedStart),
     end: minutesToTime(clippedEnd),
+    durationMinutes: clippedEnd - clippedStart,
     originalStart: slot.begin_time.slice(0, 5),
     originalEnd: slot.end_time.slice(0, 5)
   };
@@ -148,6 +152,7 @@ function toMarkdown(payload) {
     "",
     `${payload.club.name}, ${payload.club.address || "Krakow"}`,
     `Window: ${payload.eveningStart}-${payload.eveningEnd}`,
+    `Minimum duration: ${payload.minimumSlotMinutes} minutes`,
     ""
   ];
 
