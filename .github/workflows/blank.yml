@@ -41,6 +41,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check raw occupancy API
+        env:
+          CLUB_ID: 104
+        run: npm run check:occupancy-api
+
       - name: Check Fame badminton availability
         env:
           DAYS_AHEAD: ${{ github.event.inputs.days_ahead || '14' }}
