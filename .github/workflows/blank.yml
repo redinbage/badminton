@@ -20,7 +20,7 @@ on:
       evening_end:
         description: "Latest end time to report"
         required: false
-        default: "22:00"
+        default: "22:30"
 
 jobs:
   search:
@@ -47,7 +47,7 @@ jobs:
           SPORT_TYPE: badminton
           DAYS_AHEAD: ${{ github.event.inputs.days_ahead || '14' }}
           EVENING_START: ${{ github.event.inputs.evening_start || '18:00' }}
-          EVENING_END: ${{ github.event.inputs.evening_end || '22:00' }}
+          EVENING_END: ${{ github.event.inputs.evening_end || '22:30' }}
           TIME_ZONE: Europe/Warsaw
           OUTPUT_DIR: output
         run: npm run check:occupancy-api
@@ -56,7 +56,7 @@ jobs:
         env:
           DAYS_AHEAD: ${{ github.event.inputs.days_ahead || '14' }}
           EVENING_START: ${{ github.event.inputs.evening_start || '18:00' }}
-          EVENING_END: ${{ github.event.inputs.evening_end || '22:00' }}
+          EVENING_END: ${{ github.event.inputs.evening_end || '22:30' }}
           TIME_ZONE: Europe/Warsaw
           OUTPUT_DIR: output
         run: npm run search:courts
